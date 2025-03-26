@@ -110,16 +110,3 @@ class CropCameraApp(QtWidgets.QMainWindow):
             self.capture_service.stop_capture()
         self.capture_service.close_camera()
         event.accept()
-
-if __name__ == "__main__":
-    app = QtWidgets.QApplication(sys.argv)
-    output_dir = os.path.join(os.path.expanduser("~"), "Desktop", "record_export")
-    from capture_service import CaptureService
-    from metadata_service import MetadataService
-    cap_service = CaptureService(output_dir)
-    # Define a path for the SQLite DB (e.g., on the Desktop).
-    db_path = os.path.join(os.path.expanduser("~"), "Desktop", "captures.db")
-    meta_service = MetadataService(db_path)
-    window = CropCameraApp(cap_service, meta_service)
-    window.showFullScreen()
-    sys.exit(app.exec())

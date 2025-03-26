@@ -1,4 +1,3 @@
-# metadata_service.py
 import sqlite3
 
 class MetadataService:
@@ -39,3 +38,13 @@ class MetadataService:
         cursor.execute("SELECT id, filename, timestamp, status FROM captures")
         rows = cursor.fetchall()
         return rows
+
+    def get_capture(self, capture_id):
+        """
+        Retrieve a single capture record by its ID.
+        Returns a tuple (id, filename, timestamp, status) or None if not found.
+        """
+        cursor = self.conn.cursor()
+        cursor.execute("SELECT id, filename, timestamp, status FROM captures WHERE id = ?", (capture_id,))
+        row = cursor.fetchone()
+        return row
