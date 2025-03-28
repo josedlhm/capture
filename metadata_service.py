@@ -13,18 +13,22 @@ class MetadataService:
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 filename TEXT UNIQUE,
                 timestamp TEXT,
-                status TEXT
+                status TEXT,
+                capture_type TEXT,
+                variety TEXT,
+                location TEXT
             )
         """)
         self.conn.commit()
     
-    def add_capture(self, filename, timestamp, status="captured"):
+    def add_capture(self, filename, timestamp, status="captured", capture_type=None, variety=None, location=None):
         cursor = self.conn.cursor()
         cursor.execute("""
-            INSERT OR IGNORE INTO captures (filename, timestamp, status)
-            VALUES (?, ?, ?)
-        """, (filename, timestamp, status))
+            INSERT OR IGNORE INTO captures (filename, timestamp, status, capture_type, variety, location)
+            VALUES (?, ?, ?, ?, ?, ?)
+        """, (filename, timestamp, status, capture_type, variety, location))
         self.conn.commit()
+
     
     def update_status(self, filename, status):
         cursor = self.conn.cursor()

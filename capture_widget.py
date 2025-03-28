@@ -84,16 +84,26 @@ class CaptureWidget(QtWidgets.QWidget):
             if self.current_capture_file:
                 filename = os.path.basename(self.current_capture_file)
                 timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-                # Save metadata as before.
-                self.metadata_service.add_capture(filename, timestamp, "captured")
+                # Assume self.parent().current_capture_options holds the options from CaptureOptionsWidget.
+                # Alternatively, pass them via signal or store in a global or shared object.
+                options = getattr(self, 'capture_options', {})  # A dictionary with keys: capture_type, variety, location.
                 
-                # Prepare metadata dictionary.
+                # Save extended metadata.
+                self.metadata_service.add_capture(
+                    filename, timestamp, "captured",
+                    capture_type=options.get("capture_type"),
+                    variety=options.get("variety"),
+                    location=options.get("location")
+                )
+                
                 metadata = {
                     "Filename": filename,
                     "Timestamp": timestamp,
-                    # You could add more details here if available.
+                    "Capture Type": options.get("capture_type", "N/A"),
+                    "Variety": options.get("variety", "N/A"),
+                    "Location": options.get("location", "N/A")
                 }
-                # Emit the signal with capture file path and metadata.
+                # Emit the captureCompleted signal with the extended metadata.
                 self.captureCompleted.emit(self.current_capture_file, metadata)
                 logging.info("Capture completed and metadata recorded for: %s", filename)
                 self.current_capture_file = None

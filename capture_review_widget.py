@@ -16,37 +16,49 @@ class CaptureReviewWidget(QWidget):
         self.capture_file = capture_file
         self.metadata = metadata
         self.setStyleSheet("""
-            QWidget { background-color: #2c2c2c; }
-            QLabel { color: white; font-size: 18px; }
-            QPushButton { font-size: 20px; padding: 10px; background-color: #444444; color: white; border: none; border-radius: 5px; }
-            QPushButton:hover { background-color: #555555; }
+            
+            QLabel {
+    
+                font-size: 20px;            /* Slightly larger text for readability */
+                border: none;
+            }
+            QPushButton {
+     
+                font-size: 24px;           /* Larger font for tablet/touch */
+                padding: 20px 40px;        /* Generous padding for big, easy-to-tap buttons */
+
+            }
+
         """)
         self.init_ui()
 
     def init_ui(self):
-        # Create and save the main layout.
+        # Main vertical layout
         self.layout_main = QVBoxLayout(self)
         self.layout_main.setAlignment(Qt.AlignCenter)
+        self.layout_main.setContentsMargins(60, 60, 60, 60)
+        self.layout_main.setSpacing(30)
 
         # Header
         header = QLabel("Review Capture")
         header.setAlignment(Qt.AlignCenter)
-        header.setStyleSheet("font-size: 28px; font-weight: bold;")
+        header.setStyleSheet("font-size: 32px; font-weight: bold;")
         self.layout_main.addWidget(header)
 
-        # Instead of a thumbnail, show a message.
-        no_thumbnail_label = QLabel("No thumbnail available")
-        no_thumbnail_label.setAlignment(Qt.AlignCenter)
-        self.layout_main.addWidget(no_thumbnail_label)
-
-        # Display metadata.
+        # Display metadata in the middle
         meta_info = "\n".join(f"{k}: {v}" for k, v in self.metadata.items())
         meta_label = QLabel(meta_info)
         meta_label.setAlignment(Qt.AlignCenter)
         self.layout_main.addWidget(meta_label)
 
-        # Action buttons: Save or Delete.
+        # Spacer to push buttons lower if there's vertical space
+        # (Optional if you want the buttons near the bottom)
+        # self.layout_main.addStretch()
+
+        # Action buttons: Save or Delete (like the opening screen)
         button_layout = QHBoxLayout()
+        button_layout.setSpacing(60)  # Space between the two buttons
+
         save_btn = QPushButton("Save Capture")
         save_btn.clicked.connect(self.handle_save)
         button_layout.addWidget(save_btn)
@@ -58,7 +70,7 @@ class CaptureReviewWidget(QWidget):
         self.layout_main.addLayout(button_layout)
 
     def clear_layout(self, layout):
-        # Recursively remove all items from the layout.
+        """Recursively remove all items from the layout."""
         while layout.count():
             item = layout.takeAt(0)
             if item.widget():
@@ -67,16 +79,18 @@ class CaptureReviewWidget(QWidget):
                 self.clear_layout(item.layout())
 
     def handle_save(self):
-        # Clear the current main layout.
+        # Clear the current layout
         self.clear_layout(self.layout_main)
         
-        # Reuse the same layout to add the confirmation message and follow-up options.
+        # Reuse the same layout for a confirmation message and follow-up options
         confirmation_label = QLabel("Capture saved successfully!")
         confirmation_label.setAlignment(Qt.AlignCenter)
         self.layout_main.addWidget(confirmation_label)
 
-        # Create a horizontal layout for the follow-up buttons.
+        # Follow-up buttons: new capture or dashboard
         button_layout = QHBoxLayout()
+        button_layout.setSpacing(60)
+
         new_capture_btn = QPushButton("Take New Capture")
         new_capture_btn.clicked.connect(lambda: self.finish_review("new_capture"))
         button_layout.addWidget(new_capture_btn)
@@ -88,6 +102,6 @@ class CaptureReviewWidget(QWidget):
         self.layout_main.addLayout(button_layout)
 
     def finish_review(self, action):
-        # Emit the final decision.
+        """Emit the final decision."""
         print(f"User chose to {action}")
         self.reviewCompleted.emit(action)

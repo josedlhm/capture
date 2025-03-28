@@ -90,3 +90,8 @@ class MainWindow(QMainWindow):
             self.change_page(1)  # Navigate to Capture Options for a new capture.
         elif action == "dashboard":
             self.change_page(0)  # Navigate to Dashboard.
+    
+    def handle_capture_options(self, options):
+        print("Received capture options:", options)
+        self.current_capture_options = options  # Save for later use
+        self.change_page(2)  # Navigate to the actual capture screen

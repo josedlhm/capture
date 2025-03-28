@@ -9,13 +9,7 @@ class CapturesListWidget(QtWidgets.QWidget):
         self.metadata_service = metadata_service
 
         # Apply a consistent dark style.
-        self.setStyleSheet("""
-            QWidget { background-color: #2c2c2c; }
-            QTableWidget { background-color: #3b3b3b; color: white; gridline-color: #555; }
-            QHeaderView::section { background-color: #444444; color: white; }
-            QPushButton { font-size: 16px; padding: 8px; background-color: #444444; color: white; border: 2px solid #666; border-radius: 5px; }
-            QPushButton:hover { background-color: #555555; }
-        """)
+        
 
         main_layout = QVBoxLayout(self)
         
