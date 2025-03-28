@@ -1,18 +1,16 @@
+# main.py
 import sys
-import os
-from PySide6 import QtWidgets
-from crop_camera_app import CropCameraApp
+from PySide6.QtWidgets import QApplication
 from capture_service import CaptureService
 from metadata_service import MetadataService
 from config import OUTPUT_DIR, DB_PATH
+from main_window import MainWindow
 
 def main():
-
     cap_service = CaptureService(OUTPUT_DIR)
     meta_service = MetadataService(DB_PATH)
-    
-    app = QtWidgets.QApplication(sys.argv)
-    window = CropCameraApp(cap_service, meta_service)
+    app = QApplication(sys.argv)
+    window = MainWindow(cap_service, meta_service)
     window.showFullScreen()
     sys.exit(app.exec())
 
