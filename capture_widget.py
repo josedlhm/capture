@@ -27,7 +27,7 @@ class CaptureWidget(QtWidgets.QWidget):
         main_layout = QtWidgets.QVBoxLayout(self)
         
         # Video display label.
-        self.video_label = QtWidgets.QLabel("Initializing ZED Camera...", self)
+        self.video_label = QtWidgets.QLabel(self)
         self.video_label.setAlignment(QtCore.Qt.AlignCenter)
         main_layout.addWidget(self.video_label, stretch=1)
 
@@ -48,17 +48,28 @@ class CaptureWidget(QtWidgets.QWidget):
         self.stop_button.clicked.connect(self.stop_recording)
         self.button_layout.addWidget(self.stop_button)
 
-        # ZED camera setup.
-        self.cam = self.capture_service.cam
-        self.image_zed = sl.Mat()
-        self.runtime = sl.RuntimeParameters()
+        # If camera is available, set up for streaming
+        if self.capture_service.camera_available:
+            self.cam = self.capture_service.cam
+            self.image_zed = sl.Mat()
+            self.runtime = sl.RuntimeParameters()
 
-        # Timer to update the video feed (~60 FPS).
-        self.timer = QtCore.QTimer(self)
-        self.timer.timeout.connect(self.update_frame)
-        self.timer.start(16)
+            # Timer to update the video feed (~60 FPS).
+            self.timer = QtCore.QTimer(self)
+            self.timer.timeout.connect(self.update_frame)
+            self.timer.start(16)
+        else:
+            # Show a message that no camera is connected
+            self.video_label.setText("No camera detected")
+            # Optionally disable the Start/Stop buttons
+            self.start_button.setEnabled(False)
+            self.stop_button.setEnabled(False)
 
     def update_frame(self):
+        # Only attempt to grab frames if camera is available
+        if not self.capture_service.camera_available:
+            return  # do nothing
+
         if self.cam.grab(self.runtime) == sl.ERROR_CODE.SUCCESS:
             self.cam.retrieve_image(self.image_zed, sl.VIEW.LEFT)
             frame = self.image_zed.get_data()
@@ -71,29 +82,38 @@ class CaptureWidget(QtWidgets.QWidget):
             self.video_label.setPixmap(pixmap)
 
     def start_recording(self):
+        # If camera is not available, show a message
+        if not self.capture_service.camera_available:
+            QtWidgets.QMessageBox.warning(self, "No Camera", "Cannot start capture because no camera is detected.")
+            return
+
         try:
             self.current_capture_file = self.capture_service.start_capture()
-            self.rec_label.show()
+            if self.current_capture_file:
+                self.rec_label.show()
         except Exception as e:
             QtWidgets.QMessageBox.critical(self, "Error", str(e))
 
     def stop_recording(self):
+        if not self.capture_service.camera_available:
+            return  # no camera, so nothing to stop
+
         try:
             self.capture_service.stop_capture()
             self.rec_label.hide()
             if self.current_capture_file:
                 filename = os.path.basename(self.current_capture_file)
                 timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-                # Assume self.parent().current_capture_options holds the options from CaptureOptionsWidget.
-                # Alternatively, pass them via signal or store in a global or shared object.
-                options = getattr(self, 'capture_options', {})  # A dictionary with keys: capture_type, variety, location.
+                options = getattr(self, 'capture_options', {})
                 
-                # Save extended metadata.
                 self.metadata_service.add_capture(
-                    filename, timestamp, "captured",
+                    filename,
+                    timestamp,
+                    "captured",
                     capture_type=options.get("capture_type"),
                     variety=options.get("variety"),
-                    location=options.get("location")
+                    location=options.get("location"),
+                    username=options.get("username")
                 )
                 
                 metadata = {
@@ -101,9 +121,9 @@ class CaptureWidget(QtWidgets.QWidget):
                     "Timestamp": timestamp,
                     "Capture Type": options.get("capture_type", "N/A"),
                     "Variety": options.get("variety", "N/A"),
-                    "Location": options.get("location", "N/A")
+                    "Location": options.get("location", "N/A"),
+                    "Username": options.get("username", "N/A")
                 }
-                # Emit the captureCompleted signal with the extended metadata.
                 self.captureCompleted.emit(self.current_capture_file, metadata)
                 logging.info("Capture completed and metadata recorded for: %s", filename)
                 self.current_capture_file = None
@@ -113,7 +133,8 @@ class CaptureWidget(QtWidgets.QWidget):
             QtWidgets.QMessageBox.critical(self, "Error", str(e))
 
     def closeEvent(self, event):
-        if self.capture_service.recording:
+        # If camera is available and we are recording, stop properly
+        if self.capture_service.camera_available and self.capture_service.recording:
             self.capture_service.stop_capture()
         self.capture_service.close_camera()
         event.accept()

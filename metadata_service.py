@@ -1,3 +1,5 @@
+# metadata_service.py
+
 import sqlite3
 
 class MetadataService:
@@ -8,6 +10,7 @@ class MetadataService:
     
     def create_table(self):
         cursor = self.conn.cursor()
+        # Updated schema to include username
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS captures (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -16,39 +19,59 @@ class MetadataService:
                 status TEXT,
                 capture_type TEXT,
                 variety TEXT,
-                location TEXT
+                location TEXT,
+                username TEXT
             )
         """)
         self.conn.commit()
     
-    def add_capture(self, filename, timestamp, status="captured", capture_type=None, variety=None, location=None):
+    def add_capture(
+        self,
+        filename,
+        timestamp,
+        status="captured",
+        capture_type=None,
+        variety=None,
+        location=None,
+        username=None
+    ):
         cursor = self.conn.cursor()
-        cursor.execute("""
-            INSERT OR IGNORE INTO captures (filename, timestamp, status, capture_type, variety, location)
-            VALUES (?, ?, ?, ?, ?, ?)
-        """, (filename, timestamp, status, capture_type, variety, location))
+        cursor.execute(
+            """
+            INSERT OR IGNORE INTO captures 
+            (filename, timestamp, status, capture_type, variety, location, username)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+            """,
+            (filename, timestamp, status, capture_type, variety, location, username)
+        )
         self.conn.commit()
 
-    
     def update_status(self, filename, status):
         cursor = self.conn.cursor()
         cursor.execute("""
             UPDATE captures SET status = ? WHERE filename = ?
         """, (status, filename))
         self.conn.commit()
-    
+
     def list_captures(self):
+        # Retrieve all columns, including username
         cursor = self.conn.cursor()
-        cursor.execute("SELECT id, filename, timestamp, status FROM captures")
+        cursor.execute("""
+            SELECT id, filename, timestamp, status, 
+                   capture_type, variety, location, username
+            FROM captures
+        """)
         rows = cursor.fetchall()
         return rows
 
     def get_capture(self, capture_id):
-        """
-        Retrieve a single capture record by its ID.
-        Returns a tuple (id, filename, timestamp, status) or None if not found.
-        """
+        # Also retrieve all columns, including username
         cursor = self.conn.cursor()
-        cursor.execute("SELECT id, filename, timestamp, status FROM captures WHERE id = ?", (capture_id,))
+        cursor.execute("""
+            SELECT id, filename, timestamp, status,
+                   capture_type, variety, location, username
+            FROM captures
+            WHERE id = ?
+        """, (capture_id,))
         row = cursor.fetchone()
         return row

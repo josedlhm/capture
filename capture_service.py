@@ -15,15 +15,24 @@ class CaptureService:
             camera_fps=60,
             async_image_retrieval=False
         )
+        
         status = self.cam.open(self.init_params)
         if status != sl.ERROR_CODE.SUCCESS:
-            raise RuntimeError(f"Unable to open camera: {status}")
+            logging.warning(f"Unable to open camera: {status} — No camera detected. Running in offline mode.")
+            self.camera_available = False
+        else:
+            logging.info("Camera opened successfully.")
+            self.camera_available = True
+        
         self.recording = False
         self.output_dir = output_dir
         os.makedirs(self.output_dir, exist_ok=True)
-        logging.info("Camera opened successfully.")
 
     def start_capture(self):
+        if not self.camera_available:
+            logging.warning("start_capture called, but no camera is connected.")
+            return None  # Indicate there's no valid capture file
+        
         if not self.recording:
             timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
             output_filename = os.path.join(self.output_dir, f"{timestamp}.svo2")
@@ -36,11 +45,12 @@ class CaptureService:
             return output_filename
 
     def stop_capture(self):
-        if self.recording:
+        if self.camera_available and self.recording:
             self.cam.disable_recording()
             self.recording = False
             logging.info("Recording stopped.")
 
     def close_camera(self):
-        self.cam.close()
-        logging.info("Camera closed.")
+        if self.camera_available:
+            self.cam.close()
+            logging.info("Camera closed.")

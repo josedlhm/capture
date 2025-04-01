@@ -50,7 +50,7 @@ class DashboardWidget(QWidget):
         view_captures_btn = QPushButton("View Captures")
         view_captures_btn.setMinimumWidth(300)
         view_captures_btn.setMinimumHeight(100)
-        view_captures_btn.clicked.connect(lambda: self.navigationRequested.emit(3))
+        view_captures_btn.clicked.connect(lambda: self.navigationRequested.emit(4))
         button_container.addWidget(view_captures_btn)
 
         layout.addLayout(button_container)
