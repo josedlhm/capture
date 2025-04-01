@@ -16,13 +16,13 @@ class CaptureWidget(QtWidgets.QWidget):
         self.metadata_service = metadata_service
         self.current_capture_file = None
 
-        # Apply a consistent dark theme.
-        self.setStyleSheet("""
-            QWidget { background-color: #2c2c2c; }
-            QPushButton { font-size: 20px; padding: 10px; background-color: #444444; color: white; border: 2px solid #666; border-radius: 5px; }
-            QPushButton:hover { background-color: #555555; }
-            QLabel { color: white; font-size: 18px; }
-        """)
+        # # Apply a consistent dark theme.
+        # self.setStyleSheet("""
+        #     QWidget { background-color: #2c2c2c; }
+        #     QPushButton { font-size: 20px; padding: 10px; background-color: #444444; color: white; border: 2px solid #666; border-radius: 5px; }
+        #     QPushButton:hover { background-color: #555555; }
+        #     QLabel { color: white; font-size: 18px; }
+        # """)
 
         main_layout = QtWidgets.QVBoxLayout(self)
         

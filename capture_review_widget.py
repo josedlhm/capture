@@ -15,21 +15,21 @@ class CaptureReviewWidget(QWidget):
         super().__init__(parent)
         self.capture_file = capture_file
         self.metadata = metadata
-        self.setStyleSheet("""
+        # self.setStyleSheet("""
             
-            QLabel {
+        #     QLabel {
     
-                font-size: 20px;            /* Slightly larger text for readability */
-                border: none;
-            }
-            QPushButton {
+        #         font-size: 20px;            /* Slightly larger text for readability */
+        #         border: none;
+        #     }
+        #     QPushButton {
      
-                font-size: 24px;           /* Larger font for tablet/touch */
-                padding: 20px 40px;        /* Generous padding for big, easy-to-tap buttons */
+        #         font-size: 24px;           /* Larger font for tablet/touch */
+        #         padding: 20px 40px;        /* Generous padding for big, easy-to-tap buttons */
 
-            }
+        #     }
 
-        """)
+        # """)
         self.init_ui()
 
     def init_ui(self):

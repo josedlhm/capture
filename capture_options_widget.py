@@ -13,26 +13,26 @@ class CaptureOptionsWidget(QWidget):
     
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.setStyleSheet("""
+        # self.setStyleSheet("""
           
-            QLabel {
-                color: #e0e0e0;
-                font-size: 20px;           /* Larger label font for better readability */
-            }
-            QPushButton {
+        #     QLabel {
+        #         color: #e0e0e0;
+        #         font-size: 20px;           /* Larger label font for better readability */
+        #     }
+        #     QPushButton {
         
-                color: #e0e0e0;
-                font-size: 22px;           /* Larger font for tablet touch targets */
-                padding: 15px 30px;        /* Increased padding for easier tapping */
+        #         color: #e0e0e0;
+        #         font-size: 22px;           /* Larger font for tablet touch targets */
+        #         padding: 15px 30px;        /* Increased padding for easier tapping */
 
-            }
+        #     }
 
-            QLineEdit, QComboBox {
-                font-size: 20px;           /* Larger input font for tablet use */
-                padding: 10px;
+        #     QLineEdit, QComboBox {
+        #         font-size: 20px;           /* Larger input font for tablet use */
+        #         padding: 10px;
   
-            }
-        """)
+        #     }
+        # """)
         self.init_ui()
     
     def init_ui(self):

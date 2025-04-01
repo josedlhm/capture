@@ -9,41 +9,7 @@ class DashboardWidget(QWidget):
         self.capture_service = capture_service
         self.metadata_service = metadata_service
 
-        self.setStyleSheet("""
-            QWidget {
-
-                font-family: 'Segoe UI', sans-serif;
-            }
-            QLabel#Header {
-                font-size: 28px;
-                font-weight: 600;
-                color: #ffffff;
-                margin-bottom: 30px;
-            }
-            QPushButton {
-                font-size: 18px;
-                font-weight: 500;
-                color: white;
-                background-color: #2c2c2c;
-                padding: 18px 30px;
-                border-radius: 12px;
-                border: 1px solid #444;
        
-            }
-
-            QPushButton:hover {
-                background-color: #00B894;
-                border-color: #00d9b6;
-                color: white;
-
-            }
-
-            QLabel#Header {
-                font-size: 28px;
-                font-weight: bold;
-                letter-spacing: 0.5px;
-            }
-        """)
 
         self.init_ui()
 

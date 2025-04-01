@@ -17,30 +17,6 @@ class MainWindow(QMainWindow):
         self.setWindowTitle("Crop Camera App")
         self.resize(1200, 800)
 
-        # Set a simple yet professional dark theme for the main window and its children.
-        # Feel free to adjust fonts, colors, and other styling to your liking.
-        self.setStyleSheet("""
-            QMainWindow {
-
-            }
-            QWidget {
-                font-family: "Segoe UI", sans-serif;
-                font-size: 16px;
-                color: #e0e0e0;
-            }
-            QPushButton {
-                background-color: #3a3a3a;
-                border: none;
-                border-radius: 4px;
-                padding: 10px 20px;
-            }
-            QPushButton:hover {
-                background-color: #4a4a4a;
-            }
-            QLabel {
-                color: #e0e0e0;
-            }
-        """)
 
         self.current_user = None  # Will store the logged-in username
 
