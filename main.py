@@ -11,7 +11,7 @@ def main():
     cap_service = CaptureService(OUTPUT_DIR)
     meta_service = MetadataService(DB_PATH)
     app = QApplication(sys.argv)
-    qt_themes.set_theme('blender')
+    qt_themes.set_theme('github_light')
     window = MainWindow(cap_service, meta_service)
     window.show()
     sys.exit(app.exec())

@@ -2,8 +2,12 @@
 
 from PySide6 import QtWidgets
 from PySide6.QtWidgets import QVBoxLayout, QTableWidget, QTableWidgetItem, QPushButton
+from PySide6.QtCore import Signal
 
 class CapturesListWidget(QtWidgets.QWidget):
+    # Signal to notify that the back button was pressed.
+    backRequested = Signal()
+
     def __init__(self, capture_service, metadata_service, parent=None):
         super().__init__(parent)
         self.capture_service = capture_service
@@ -52,4 +56,5 @@ class CapturesListWidget(QtWidgets.QWidget):
         self.table.resizeColumnsToContents()
 
     def handle_back(self):
-        print("Back button pressed. Use the side navigation to switch pages.")
+        # Emit the signal so the main window can navigate back to the dashboard.
+        self.backRequested.emit()
