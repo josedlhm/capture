@@ -75,3 +75,25 @@ class MetadataService:
         """, (capture_id,))
         row = cursor.fetchone()
         return row
+
+
+def delete_capture_by_id(self, capture_id):
+    """
+    Permanently remove a capture from the DB by its ID.
+    """
+    cursor = self.conn.cursor()
+    cursor.execute("""
+        DELETE FROM captures WHERE id = ?
+    """, (capture_id,))
+    self.conn.commit()
+
+def update_status_by_id(self, capture_id, new_status):
+    """
+    Update the status field for a capture by its ID.
+    """
+    cursor = self.conn.cursor()
+    cursor.execute("""
+        UPDATE captures SET status = ? WHERE id = ?
+    """, (new_status, capture_id))
+    self.conn.commit()
+

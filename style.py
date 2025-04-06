@@ -66,4 +66,18 @@ def load_stylesheet() -> str:
             border: 1px solid #ececec;
             padding: 24px;
         }
+
+
+        QPushButton[role="secondary"] {
+            background-color: #7f8c8d;
+            color: #ffffff;
+        }
+
+        QPushButton[role="secondary"]:hover {
+            background-color: #95a5a6;
+        }
+
+        QPushButton[role="secondary"]:pressed {
+            background-color: #6c7a7d;
+        }
     """

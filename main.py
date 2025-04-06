@@ -28,7 +28,7 @@ def run_app():
     
     capture_service, metadata_service = init_services()
     window = MainWindow(capture_service, metadata_service)
-    window.show()  # or window.show() if you prefer windowed mode
+    window.showFullScreen()  # or window.show() if you prefer windowed mode
     sys.exit(app.exec())
 
 if __name__ == "__main__":
