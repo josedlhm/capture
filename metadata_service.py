@@ -1,5 +1,4 @@
 # metadata_service.py
-
 import sqlite3
 
 class MetadataService:
@@ -10,14 +9,13 @@ class MetadataService:
     
     def create_table(self):
         cursor = self.conn.cursor()
-        # Updated schema to include username
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS captures (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 filename TEXT UNIQUE,
                 timestamp TEXT,
                 status TEXT,
-                capture_type TEXT,
+                crop_type TEXT,
                 variety TEXT,
                 location TEXT,
                 username TEXT
@@ -30,7 +28,7 @@ class MetadataService:
         filename,
         timestamp,
         status="captured",
-        capture_type=None,
+        crop_type=None,
         variety=None,
         location=None,
         username=None
@@ -39,10 +37,10 @@ class MetadataService:
         cursor.execute(
             """
             INSERT OR IGNORE INTO captures 
-            (filename, timestamp, status, capture_type, variety, location, username)
+            (filename, timestamp, status, crop_type, variety, location, username)
             VALUES (?, ?, ?, ?, ?, ?, ?)
             """,
-            (filename, timestamp, status, capture_type, variety, location, username)
+            (filename, timestamp, status, crop_type, variety, location, username)
         )
         self.conn.commit()
 
@@ -54,46 +52,36 @@ class MetadataService:
         self.conn.commit()
 
     def list_captures(self):
-        # Retrieve all columns, including username
         cursor = self.conn.cursor()
         cursor.execute("""
             SELECT id, filename, timestamp, status, 
-                   capture_type, variety, location, username
+                   crop_type, variety, location, username
             FROM captures
         """)
         rows = cursor.fetchall()
         return rows
 
     def get_capture(self, capture_id):
-        # Also retrieve all columns, including username
         cursor = self.conn.cursor()
         cursor.execute("""
             SELECT id, filename, timestamp, status,
-                   capture_type, variety, location, username
+                   crop_type, variety, location, username
             FROM captures
             WHERE id = ?
         """, (capture_id,))
         row = cursor.fetchone()
         return row
 
+    def delete_capture_by_id(self, capture_id):
+        cursor = self.conn.cursor()
+        cursor.execute("""
+            DELETE FROM captures WHERE id = ?
+        """, (capture_id,))
+        self.conn.commit()
 
-def delete_capture_by_id(self, capture_id):
-    """
-    Permanently remove a capture from the DB by its ID.
-    """
-    cursor = self.conn.cursor()
-    cursor.execute("""
-        DELETE FROM captures WHERE id = ?
-    """, (capture_id,))
-    self.conn.commit()
-
-def update_status_by_id(self, capture_id, new_status):
-    """
-    Update the status field for a capture by its ID.
-    """
-    cursor = self.conn.cursor()
-    cursor.execute("""
-        UPDATE captures SET status = ? WHERE id = ?
-    """, (new_status, capture_id))
-    self.conn.commit()
-
+    def update_status_by_id(self, capture_id, new_status):
+        cursor = self.conn.cursor()
+        cursor.execute("""
+            UPDATE captures SET status = ? WHERE id = ?
+        """, (new_status, capture_id))
+        self.conn.commit()

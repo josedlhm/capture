@@ -13,26 +13,6 @@ class CaptureOptionsWidget(QWidget):
     
     def __init__(self, parent=None):
         super().__init__(parent)
-        # self.setStyleSheet("""
-          
-        #     QLabel {
-        #         color: #e0e0e0;
-        #         font-size: 20px;           /* Larger label font for better readability */
-        #     }
-        #     QPushButton {
-        
-        #         color: #e0e0e0;
-        #         font-size: 22px;           /* Larger font for tablet touch targets */
-        #         padding: 15px 30px;        /* Increased padding for easier tapping */
-
-        #     }
-
-        #     QLineEdit, QComboBox {
-        #         font-size: 20px;           /* Larger input font for tablet use */
-        #         padding: 10px;
-  
-        #     }
-        # """)
         self.init_ui()
     
     def init_ui(self):
@@ -52,17 +32,19 @@ class CaptureOptionsWidget(QWidget):
         form_layout.setHorizontalSpacing(30)
         form_layout.setVerticalSpacing(20)
 
-        # 1. Capture Type: Grapes or Blueberries
-        self.capture_type_combo = QComboBox()
-        self.capture_type_combo.addItems(["Grapes", "Blueberries"])
-        form_layout.addRow(self._styled_label("Capture Type:"), self.capture_type_combo)
+        # 1. Crop Type: Grapes or Blueberries
+        self.crop_type_combo = QComboBox()
+        self.crop_type_combo.addItems(["Grapes", "Blueberries"])
+        self.crop_type_combo.currentIndexChanged.connect(self.update_variety_options)
+        form_layout.addRow(self._styled_label("Crop Type:"), self.crop_type_combo)
         
-        # 2. Variety
-        self.variety_line = QLineEdit()
-        self.variety_line.setPlaceholderText("Enter variety")
-        form_layout.addRow(self._styled_label("Variety:"), self.variety_line)
+        # 2. Variety (drop down, dependent on crop type)
+        self.variety_combo = QComboBox()
+        form_layout.addRow(self._styled_label("Variety:"), self.variety_combo)
+        # Initialize variety options for the default crop type selection
+        self.update_variety_options()
         
-        # 3. Location
+        # 3. Location remains a text field
         self.location_line = QLineEdit()
         self.location_line.setPlaceholderText("Enter location")
         form_layout.addRow(self._styled_label("Location:"), self.location_line)
@@ -87,10 +69,18 @@ class CaptureOptionsWidget(QWidget):
     def handle_proceed(self):
         # Gather the selected options.
         options = {
-            "capture_type": self.capture_type_combo.currentText(),
-            "variety": self.variety_line.text(),
+            "crop_type": self.crop_type_combo.currentText(),
+            "variety": self.variety_combo.currentText(),
             "location": self.location_line.text()
         }
         print("Selected Options:", options)
         # Emit the signal so the main window can navigate.
         self.optionsSelected.emit(options)
+
+    def update_variety_options(self):
+        crop_type = self.crop_type_combo.currentText()
+        self.variety_combo.clear()
+        if crop_type == "Grapes":
+            self.variety_combo.addItems(["Real", "Plastic"])
+        elif crop_type == "Blueberries":
+            self.variety_combo.addItem("Real")

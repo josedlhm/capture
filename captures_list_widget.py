@@ -65,7 +65,7 @@ class CapturesListWidget(QtWidgets.QWidget):
         self.table.setSelectionBehavior(QAbstractItemView.SelectRows)
         self.table.setColumnCount(9)
         self.table.setHorizontalHeaderLabels(
-            ["", "ID", "File", "Time", "Status", "Type", "Variety", "Location", "User"]
+            ["", "ID", "File", "Time", "Status", "Crop Type", "Variety", "Location", "User"]
         )
 
         # Custom checkbox header for column 0
@@ -151,10 +151,13 @@ class CapturesListWidget(QtWidgets.QWidget):
         self.delete_btn.clicked.connect(self.handle_delete_selected)
         self.delete_btn.setProperty("role", "secondary")
 
-
         self.main_layout.addLayout(buttons_layout)
 
         # Load data into the table
+        self.load_captures()
+
+    def showEvent(self, event):
+        super().showEvent(event)
         self.load_captures()
 
     def load_captures(self):
@@ -169,11 +172,12 @@ class CapturesListWidget(QtWidgets.QWidget):
         self.table.clearSpans()
         self.table.setRowCount(len(captures))
         self.table.setHorizontalHeaderLabels(
-            ["", "ID", "File", "Time", "Status", "Type", "Variety", "Location", "User"]
+            ["", "ID", "File", "Time", "Status", "Crop Type", "Variety", "Location", "User"]
         )
 
         for row_idx, capture in enumerate(captures):
-            capture_id, filename, timestamp, status, ctype, variety, location, user = capture
+            # Optionally, rename 'ctype' to 'crop_type' for clarity:
+            capture_id, filename, timestamp, status, crop_type, variety, location, user = capture
 
             # 0) SELECT checkbox
             select_item = QTableWidgetItem()
@@ -201,8 +205,8 @@ class CapturesListWidget(QtWidgets.QWidget):
             status_item.setFlags(status_item.flags() & ~Qt.ItemIsEditable)
             self.table.setItem(row_idx, 4, status_item)
 
-            # 5) Type
-            type_item = QTableWidgetItem(ctype or "")
+            # 5) Crop Type
+            type_item = QTableWidgetItem(crop_type or "")
             type_item.setFlags(type_item.flags() & ~Qt.ItemIsEditable)
             self.table.setItem(row_idx, 5, type_item)
 
@@ -226,7 +230,7 @@ class CapturesListWidget(QtWidgets.QWidget):
         self.table.clearSpans()
         self.table.setRowCount(1)
         self.table.setHorizontalHeaderLabels(
-            ["", "ID", "File", "Time", "Status", "Type", "Variety", "Location", "User"]
+            ["", "ID", "File", "Time", "Status", "Crop Type", "Variety", "Location", "User"]
         )
         placeholder = QTableWidgetItem("No captures found.\nPlease capture or import images to begin.")
         placeholder.setFlags(Qt.NoItemFlags)
@@ -262,12 +266,12 @@ class CapturesListWidget(QtWidgets.QWidget):
             capture = self.metadata_service.get_capture(capture_id)
             if not capture:
                 continue
-            # Capture tuple: (id, filename, timestamp, status, capture_type, variety, location, username)
+            # Capture tuple: (id, filename, timestamp, status, crop_type, variety, location, username)
             filename = capture[1]
             file_path = os.path.join(OUTPUT_DIR, filename)
             # Build a metadata dictionary from the capture record.
             metadata = {
-                "capture_type": capture[4] if capture[4] else "",
+                "crop_type": capture[4] if capture[4] else "",
                 "variety": capture[5] if capture[5] else "",
                 "location": capture[6] if capture[6] else "",
                 "username": capture[7] if capture[7] else ""

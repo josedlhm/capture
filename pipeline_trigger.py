@@ -13,7 +13,7 @@ def trigger_pipeline(file_path: str, metadata: dict) -> dict:
             files = {"capture_file": (os.path.basename(file_path), f)}
             # Include metadata as form data.
             data = {
-                "capture_type": metadata.get("capture_type", ""),
+                "crop_type": metadata.get("crop_type", ""),
                 "variety": metadata.get("variety", ""),
                 "location": metadata.get("location", ""),
                 "username": metadata.get("username", "")

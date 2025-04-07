@@ -96,7 +96,7 @@ class CaptureWidget(QtWidgets.QWidget):
 
     def stop_recording(self):
         if not self.capture_service.camera_available:
-            return  # no camera, so nothing to stop
+            return
 
         try:
             self.capture_service.stop_capture()
@@ -110,7 +110,7 @@ class CaptureWidget(QtWidgets.QWidget):
                     filename,
                     timestamp,
                     "captured",
-                    capture_type=options.get("capture_type"),
+                    crop_type=options.get("crop_type"),
                     variety=options.get("variety"),
                     location=options.get("location"),
                     username=options.get("username")
@@ -119,7 +119,7 @@ class CaptureWidget(QtWidgets.QWidget):
                 metadata = {
                     "Filename": filename,
                     "Timestamp": timestamp,
-                    "Capture Type": options.get("capture_type", "N/A"),
+                    "Crop Type": options.get("crop_type", "N/A"),
                     "Variety": options.get("variety", "N/A"),
                     "Location": options.get("location", "N/A"),
                     "Username": options.get("username", "N/A")
