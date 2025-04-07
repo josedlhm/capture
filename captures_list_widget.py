@@ -253,11 +253,37 @@ class CapturesListWidget(QtWidgets.QWidget):
         if not selected_ids:
             QtWidgets.QMessageBox.information(self, "No Selection", "No captures selected.")
             return
+
+        import os
+        from config import OUTPUT_DIR
+        from pipeline_trigger import trigger_pipeline  # Import the helper function
+
         for capture_id in selected_ids:
-            self.metadata_service.update_status_by_id(capture_id, "analysis requested")
+            capture = self.metadata_service.get_capture(capture_id)
+            if not capture:
+                continue
+            # Capture tuple: (id, filename, timestamp, status, capture_type, variety, location, username)
+            filename = capture[1]
+            file_path = os.path.join(OUTPUT_DIR, filename)
+            # Build a metadata dictionary from the capture record.
+            metadata = {
+                "capture_type": capture[4] if capture[4] else "",
+                "variety": capture[5] if capture[5] else "",
+                "location": capture[6] if capture[6] else "",
+                "username": capture[7] if capture[7] else ""
+            }
+            try:
+                self.metadata_service.update_status_by_id(capture_id, "analysis requested")
+                result = trigger_pipeline(file_path, metadata)
+                print(f"Processing result for capture {capture_id}:", result)
+                self.metadata_service.update_status_by_id(capture_id, "analysis complete")
+            except Exception as e:
+                self.metadata_service.update_status_by_id(capture_id, "analysis failed")
+                print(f"Error processing capture {capture_id}: {e}")
+
         QtWidgets.QMessageBox.information(
-            self, "Analysis Requested",
-            f"Requested analysis for {len(selected_ids)} captures."
+            self, "Analysis Triggered",
+            f"Triggered analysis for {len(selected_ids)} capture(s)."
         )
         self.load_captures()
 
