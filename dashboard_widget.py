@@ -31,7 +31,7 @@ class DashboardWidget(QWidget):
         button_container.setAlignment(Qt.AlignCenter)
 
         new_capture_btn = QPushButton("📷  Take a New Capture")
-        new_capture_btn.clicked.connect(lambda: self.navigationRequested.emit(1))
+        new_capture_btn.clicked.connect(lambda: self.navigationRequested.emit(2))
         button_container.addWidget(new_capture_btn)
 
         view_captures_btn = QPushButton("🗂️  View Captures")
