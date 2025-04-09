@@ -3,6 +3,7 @@
 import sys
 from PySide6.QtWidgets import QApplication
 import qt_themes
+import requests
 
 from config import OUTPUT_DIR, DB_PATH
 from capture_service import CaptureService

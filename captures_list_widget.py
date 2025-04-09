@@ -257,7 +257,7 @@ class CapturesListWidget(QtWidgets.QWidget):
         """Toggle all row checkboxes when the header checkbox is clicked."""
         row_count = self.table.rowCount()
         # If there's only the placeholder row, do nothing.
-        if row_count == 1 and self.table.columnSpan(0) == self.table.columnCount():
+        if row_count == 1 and self.table.columnSpan(0, 0) == self.table.columnCount():
             return
         for row in range(row_count):
             item = self.table.item(row, 0)
@@ -327,11 +327,8 @@ class CapturesListWidget(QtWidgets.QWidget):
 
     def get_selected_ids(self):
         """Return IDs of rows whose first-column checkboxes are checked."""
-        # Check if there's only one row that's a placeholder
-        if (
-            self.table.rowCount() == 1
-            and self.table.columnSpan(0) == self.table.columnCount()
-        ):
+        # Check if there's only one row that's a placeholder.
+        if self.table.rowCount() == 1 and self.table.columnSpan(0, 0) == self.table.columnCount():
             return []
         selected_ids = []
         for row in range(self.table.rowCount()):
