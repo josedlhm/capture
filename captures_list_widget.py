@@ -18,21 +18,22 @@ class CheckBoxHeader(QtWidgets.QHeaderView):
         self.sectionClicked.connect(self.handleSectionClicked)
 
     def paintSection(self, painter, rect, logicalIndex):
-        super().paintSection(painter, rect, logicalIndex)
+        # For the first column, paint only the checkbox
         if logicalIndex == 0:
             option = QStyleOptionButton()
-            checkbox_size = self.style().subElementRect(
-                QStyle.SE_CheckBoxIndicator, option, None
-            ).size()
+            checkbox_size = self.style().subElementRect(QStyle.SE_CheckBoxIndicator, option, None).size()
             x = rect.x() + (rect.width() - checkbox_size.width()) // 2
             y = rect.y() + (rect.height() - checkbox_size.height()) // 2
             option.rect = QRect(x, y, checkbox_size.width(), checkbox_size.height())
-            option.state = (
-                QStyle.State_Enabled
-                | QStyle.State_Active
-                | (QStyle.State_On if self._isChecked else QStyle.State_Off)
-            )
+            option.state = QStyle.State_Enabled | QStyle.State_Active
+            if self._isChecked:
+                option.state |= QStyle.State_On
+            else:
+                option.state |= QStyle.State_Off
             self.style().drawControl(QStyle.CE_CheckBox, option, painter)
+        else:
+            # For other columns, use the default painting
+            super().paintSection(painter, rect, logicalIndex)
 
     def handleSectionClicked(self, logicalIndex):
         if logicalIndex == 0:
@@ -175,14 +176,25 @@ class CapturesListWidget(QtWidgets.QWidget):
             ["", "ID", "File", "Time", "Status", "Crop Type", "Variety", "Location", "User"]
         )
 
+        # Hide the vertical header so row numbers (or empty cells) aren’t shown.
+        self.table.verticalHeader().setVisible(False)
+
+        # Remove focus so no focus rectangle is drawn on the first row.
+        self.table.setFocusPolicy(Qt.NoFocus)
+
         for row_idx, capture in enumerate(captures):
             # Optionally, rename 'ctype' to 'crop_type' for clarity:
             capture_id, filename, timestamp, status, crop_type, variety, location, user = capture
 
             # 0) SELECT checkbox
-            select_item = QTableWidgetItem()
-            select_item.setFlags(select_item.flags() | Qt.ItemIsUserCheckable)
+            select_item = QTableWidgetItem()  # No text
+# Keep it enabled and user-checkable only (remove "selectable" or "editable" flags)
+            select_item.setFlags(Qt.ItemIsEnabled | Qt.ItemIsUserCheckable)
+            # Initialize it to unchecked
             select_item.setCheckState(Qt.Unchecked)
+            # Center the checkbox horizontally (optional)
+            select_item.setTextAlignment(Qt.AlignCenter)
+
             self.table.setItem(row_idx, 0, select_item)
 
             # 1) ID
@@ -242,9 +254,9 @@ class CapturesListWidget(QtWidgets.QWidget):
         self.delete_btn.setEnabled(False)
 
     def handle_header_checkbox_clicked(self, checked):
-        """Toggle all row checkboxes."""
+        """Toggle all row checkboxes when the header checkbox is clicked."""
         row_count = self.table.rowCount()
-        # If only one row that spans all columns, it's likely the placeholder row
+        # If there's only the placeholder row, do nothing.
         if row_count == 1 and self.table.columnSpan(0) == self.table.columnCount():
             return
         for row in range(row_count):
@@ -255,21 +267,23 @@ class CapturesListWidget(QtWidgets.QWidget):
     def handle_analyze_selected(self):
         selected_ids = self.get_selected_ids()
         if not selected_ids:
-            QtWidgets.QMessageBox.information(self, "No Selection", "No captures selected.")
+            QtWidgets.QMessageBox.information(
+                self, "No Selection", "No captures selected. Please select at least one capture."
+            )
             return
 
+        # [Rest of your analyze logic goes here...]
+        # For example:
         import os
         from config import OUTPUT_DIR
-        from pipeline_trigger import trigger_pipeline  # Import the helper function
+        from pipeline_trigger import trigger_pipeline
 
         for capture_id in selected_ids:
             capture = self.metadata_service.get_capture(capture_id)
             if not capture:
                 continue
-            # Capture tuple: (id, filename, timestamp, status, crop_type, variety, location, username)
             filename = capture[1]
             file_path = os.path.join(OUTPUT_DIR, filename)
-            # Build a metadata dictionary from the capture record.
             metadata = {
                 "crop_type": capture[4] if capture[4] else "",
                 "variety": capture[5] if capture[5] else "",
@@ -294,7 +308,9 @@ class CapturesListWidget(QtWidgets.QWidget):
     def handle_delete_selected(self):
         selected_ids = self.get_selected_ids()
         if not selected_ids:
-            QtWidgets.QMessageBox.information(self, "No Selection", "No captures selected.")
+            QtWidgets.QMessageBox.information(
+                self, "No Selection", "No captures selected. Please select at least one capture to delete."
+            )
             return
         confirm = QtWidgets.QMessageBox.question(
             self, "Confirm Delete",

@@ -67,17 +67,30 @@ def load_stylesheet() -> str:
             padding: 24px;
         }
 
-
+        /* SECONDARY BUTTONS */
         QPushButton[role="secondary"] {
             background-color: #7f8c8d;
             color: #ffffff;
         }
-
         QPushButton[role="secondary"]:hover {
             background-color: #95a5a6;
         }
-
         QPushButton[role="secondary"]:pressed {
             background-color: #6c7a7d;
+        }
+
+        /* TOOLBAR */
+        QToolBar {
+            background-color: #00B894;  /* matching primary button color for consistency */
+            padding: 8px;
+            spacing: 10px;
+            border: none;
+        }
+        QToolBar QToolButton {
+            color: #ffffff;
+            font-size: 20px;
+            padding: 4px 12px;
+            background: transparent;
+            border: none;
         }
     """

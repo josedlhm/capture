@@ -1,6 +1,8 @@
-# main_window.py
-from PySide6.QtWidgets import QMainWindow, QWidget, QVBoxLayout, QStackedWidget
+from PySide6.QtWidgets import (
+    QMainWindow, QWidget, QVBoxLayout, QStackedWidget, QToolBar, QMessageBox, QSizePolicy
+)
 from PySide6.QtCore import Qt
+from PySide6.QtGui import QAction, QIcon
 
 from dashboard_widget import DashboardWidget
 from capture_options_widget import CaptureOptionsWidget
@@ -14,12 +16,45 @@ class MainWindow(QMainWindow):
         super().__init__()
         self.setWindowTitle("Crop Camera App")
         self.resize(1200, 800)
-
         self.current_user = None  # Will store the logged-in username
 
+        toolbar = QToolBar("Global Toolbar")
+        toolbar.setMovable(False)
+        self.addToolBar(Qt.TopToolBarArea, toolbar)
+
+        # Spacer widget to push the exit button to the right
+        spacer = QWidget()
+        spacer.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
+        toolbar.addWidget(spacer)
+
+        # Create the exit action as an "X" button
+        exit_action = QAction("X", self)
+        exit_action.setToolTip("Exit Application")
+        exit_action.triggered.connect(self.confirm_exit)
+        toolbar.addAction(exit_action)
+
+        # Style the exit button to look like your old red button, 
+        # but with "X" text instead of "Exit".
+        exit_button = toolbar.widgetForAction(exit_action)
+        if exit_button:
+            exit_button.setStyleSheet("""
+                QToolButton {
+                    background-color: #e74c3c;  /* red background */
+                    color: white;
+                    font-weight: bold;
+                    font-size: 20px;
+                    border: none;
+                    padding: 6px 12px;
+                    border-radius: 4px;
+                }
+                QToolButton:hover {
+                    background-color: #c0392b;
+                }
+    """)
+
+        # Main container and layout.
         container = QWidget()
         self.setCentralWidget(container)
-
         main_layout = QVBoxLayout(container)
         main_layout.setContentsMargins(30, 30, 30, 30)
         main_layout.setSpacing(20)
@@ -45,9 +80,20 @@ class MainWindow(QMainWindow):
         self.dashboard_page.navigationRequested.connect(self.change_page)
         self.capture_options_page.optionsSelected.connect(self.handle_capture_options)
         self.capture_page.captureCompleted.connect(self.show_capture_review)
-
         self.list_page.backRequested.connect(self.go_back_to_dashboard)
-    
+
+    def confirm_exit(self):
+        """Prompt for confirmation before exiting the app."""
+        reply = QMessageBox.question(
+            self, 
+            "Exit Application",
+            "Are you sure you want to exit?",
+            QMessageBox.Yes | QMessageBox.No,
+            QMessageBox.No
+        )
+        if reply == QMessageBox.Yes:
+            self.close()
+
     def go_back_to_dashboard(self):
         self.change_page(1)
 

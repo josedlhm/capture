@@ -1,107 +1,112 @@
-import os
-from PySide6.QtWidgets import QWidget, QVBoxLayout, QLabel, QPushButton, QHBoxLayout
+# capture_review_widget.py
+import sys
+from PySide6.QtWidgets import (
+    QWidget, QVBoxLayout, QLabel, QPushButton, QHBoxLayout,
+    QFrame, QFormLayout, QMessageBox, QApplication
+)
 from PySide6.QtCore import Signal, Qt
 
 class CaptureReviewWidget(QWidget):
-    # Signal that communicates the user's final decision.
-    # It will send one of the following strings: "delete", "new_capture", or "dashboard".
+    """
+    A widget that displays capture metadata in a card layout and provides
+    options to 'Save' or 'Delete' the capture.
+    """
     reviewCompleted = Signal(str)
 
     def __init__(self, capture_file, metadata, parent=None):
         """
-        capture_file: The path to the captured file.
-        metadata: A dictionary with metadata (e.g., timestamp, capture type, variety, location).
+        capture_file: The path to the captured file (string).
+        metadata: A dict with keys like 'Crop Type', 'Filename', 'Location', etc.
         """
         super().__init__(parent)
         self.capture_file = capture_file
         self.metadata = metadata
-        # self.setStyleSheet("""
-            
-        #     QLabel {
-    
-        #         font-size: 20px;            /* Slightly larger text for readability */
-        #         border: none;
-        #     }
-        #     QPushButton {
-     
-        #         font-size: 24px;           /* Larger font for tablet/touch */
-        #         padding: 20px 40px;        /* Generous padding for big, easy-to-tap buttons */
-
-        #     }
-
-        # """)
         self.init_ui()
 
     def init_ui(self):
-        # Main vertical layout
-        self.layout_main = QVBoxLayout(self)
-        self.layout_main.setAlignment(Qt.AlignCenter)
-        self.layout_main.setContentsMargins(60, 60, 60, 60)
-        self.layout_main.setSpacing(30)
+        # Outer layout to center the card in the window
+        outer_layout = QVBoxLayout(self)
+        outer_layout.setAlignment(Qt.AlignCenter)
+        outer_layout.setContentsMargins(50, 50, 50, 50)
 
-        # Header
+        # Create a QFrame that uses your "card" style (from style.py)
+        card_frame = QFrame()
+        card_frame.setProperty("role", "card")
+        card_layout = QVBoxLayout(card_frame)
+        card_layout.setSpacing(30)
+        card_layout.setContentsMargins(30, 30, 30, 30)
+
+        # Title / Header
         header = QLabel("Review Capture")
+        header.setObjectName("Header")  # So it picks up your header style
         header.setAlignment(Qt.AlignCenter)
-        header.setStyleSheet("font-size: 32px; font-weight: bold;")
-        self.layout_main.addWidget(header)
+        card_layout.addWidget(header)
 
-        # Display metadata in the middle
-        meta_info = "\n".join(f"{k}: {v}" for k, v in self.metadata.items())
-        meta_label = QLabel(meta_info)
-        meta_label.setAlignment(Qt.AlignCenter)
-        self.layout_main.addWidget(meta_label)
+        # Form layout for metadata: key-value pairs
+        meta_form = QFormLayout()
+        meta_form.setHorizontalSpacing(30)
+        meta_form.setVerticalSpacing(12)
+        meta_form.setLabelAlignment(Qt.AlignRight | Qt.AlignVCenter)
 
-        # Spacer to push buttons lower if there's vertical space
-        # (Optional if you want the buttons near the bottom)
-        # self.layout_main.addStretch()
+        for key, value in self.metadata.items():
+            key_label = QLabel(f"{key}:")
+            # Make the key bold/darker
+            key_label.setStyleSheet("font-weight: bold; color: #333333;")
 
-        # Action buttons: Save or Delete (like the opening screen)
+            value_label = QLabel(str(value))
+            # Slightly lighter color for values, enable word wrap if needed
+            value_label.setStyleSheet("color: #555555;")
+            value_label.setWordWrap(True)
+
+            meta_form.addRow(key_label, value_label)
+
+        card_layout.addLayout(meta_form)
+
+        # Buttons row
         button_layout = QHBoxLayout()
-        button_layout.setSpacing(60)  # Space between the two buttons
+        button_layout.setSpacing(40)
+        button_layout.setAlignment(Qt.AlignCenter)
 
+        # Save Capture button
         save_btn = QPushButton("Save Capture")
         save_btn.clicked.connect(self.handle_save)
         button_layout.addWidget(save_btn)
 
+        # Delete Capture button (marked as "danger" to style differently)
         delete_btn = QPushButton("Delete Capture")
-        delete_btn.clicked.connect(lambda: self.finish_review("delete"))
+        delete_btn.setProperty("role", "danger")
+        delete_btn.clicked.connect(self.handle_delete)
         button_layout.addWidget(delete_btn)
 
-        self.layout_main.addLayout(button_layout)
-
-    def clear_layout(self, layout):
-        """Recursively remove all items from the layout."""
-        while layout.count():
-            item = layout.takeAt(0)
-            if item.widget():
-                item.widget().deleteLater()
-            elif item.layout():
-                self.clear_layout(item.layout())
+        card_layout.addLayout(button_layout)
+        outer_layout.addWidget(card_frame, alignment=Qt.AlignCenter)
 
     def handle_save(self):
-        # Clear the current layout
-        self.clear_layout(self.layout_main)
-        
-        # Reuse the same layout for a confirmation message and follow-up options
-        confirmation_label = QLabel("Capture saved successfully!")
-        confirmation_label.setAlignment(Qt.AlignCenter)
-        self.layout_main.addWidget(confirmation_label)
+        """
+        Handle the 'Save Capture' action.
+        By default, show a simple message and then signal 'new_capture' or 
+        'dashboard' depending on your flow.
+        """
+        QMessageBox.information(self, "Capture Saved", "Capture saved successfully!")
+        self.finish_review("dashboard") 
 
-        # Follow-up buttons: new capture or dashboard
-        button_layout = QHBoxLayout()
-        button_layout.setSpacing(60)
-
-        new_capture_btn = QPushButton("Take New Capture")
-        new_capture_btn.clicked.connect(lambda: self.finish_review("new_capture"))
-        button_layout.addWidget(new_capture_btn)
-
-        dashboard_btn = QPushButton("Return to Dashboard")
-        dashboard_btn.clicked.connect(lambda: self.finish_review("dashboard"))
-        button_layout.addWidget(dashboard_btn)
-
-        self.layout_main.addLayout(button_layout)
+    def handle_delete(self):
+        """
+        Confirmation dialog before deleting the capture.
+        """
+        reply = QMessageBox.question(
+            self,
+            "Confirm Deletion",
+            "Are you sure you want to delete this capture?",
+            QMessageBox.Yes | QMessageBox.No,
+            QMessageBox.No
+        )
+        if reply == QMessageBox.Yes:
+            self.finish_review("delete")
 
     def finish_review(self, action):
-        """Emit the final decision."""
-        print(f"User chose to {action}")
+        """
+        Emit the final decision so the main window can navigate.
+        """
         self.reviewCompleted.emit(action)
+
