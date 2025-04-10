@@ -1,11 +1,14 @@
+# captures_list_widget.py
 from PySide6 import QtWidgets
-from PySide6.QtCore import Signal, Qt, QRect
+from PySide6.QtCore import Signal, Qt, QRect, QThread, QObject, Slot
 from PySide6.QtGui import QFont, QPainter, QIcon
 from PySide6.QtWidgets import (
     QVBoxLayout, QHBoxLayout, QTableWidget, QTableWidgetItem, QPushButton,
-    QAbstractItemView, QHeaderView, QLabel, QStyleOptionButton, QStyle
+    QAbstractItemView, QHeaderView, QLabel, QStyleOptionButton, QStyle, QMessageBox
 )
-
+import os
+from config import OUTPUT_DIR
+from pipeline_trigger import trigger_pipeline  # No longer used in this widget
 
 class CheckBoxHeader(QtWidgets.QHeaderView):
     clicked = Signal(bool)
@@ -18,7 +21,6 @@ class CheckBoxHeader(QtWidgets.QHeaderView):
         self.sectionClicked.connect(self.handleSectionClicked)
 
     def paintSection(self, painter, rect, logicalIndex):
-        # For the first column, paint only the checkbox
         if logicalIndex == 0:
             option = QStyleOptionButton()
             checkbox_size = self.style().subElementRect(QStyle.SE_CheckBoxIndicator, option, None).size()
@@ -32,7 +34,6 @@ class CheckBoxHeader(QtWidgets.QHeaderView):
                 option.state |= QStyle.State_Off
             self.style().drawControl(QStyle.CE_CheckBox, option, painter)
         else:
-            # For other columns, use the default painting
             super().paintSection(painter, rect, logicalIndex)
 
     def handleSectionClicked(self, logicalIndex):
@@ -44,24 +45,21 @@ class CheckBoxHeader(QtWidgets.QHeaderView):
 
 class CapturesListWidget(QtWidgets.QWidget):
     backRequested = Signal()
+    # New signal that emits a list of selected capture IDs.
+    analysisRequested = Signal(list)
 
     def __init__(self, capture_service, metadata_service, parent=None):
         super().__init__(parent)
         self.capture_service = capture_service
         self.metadata_service = metadata_service
-
-        # Window title (small, in the title bar—not a big heading)
+        # (The analysis_threads list from before is no longer needed here.)
         self.setWindowTitle("Captures")
-
-        # Main layout
         self.main_layout = QVBoxLayout(self)
         self.main_layout.setContentsMargins(20, 20, 20, 20)
         self.main_layout.setSpacing(12)
         self.setLayout(self.main_layout)
 
-        # ---------------------------------------------------------
-        # TABLE
-        # ---------------------------------------------------------
+        # Setup table with checkboxes.
         self.table = QTableWidget()
         self.table.setSelectionBehavior(QAbstractItemView.SelectRows)
         self.table.setColumnCount(9)
@@ -69,12 +67,10 @@ class CapturesListWidget(QtWidgets.QWidget):
             ["", "ID", "File", "Time", "Status", "Crop Type", "Variety", "Location", "User"]
         )
 
-        # Custom checkbox header for column 0
         self.checkboxHeader = CheckBoxHeader(Qt.Horizontal, self.table)
         self.table.setHorizontalHeader(self.checkboxHeader)
         self.checkboxHeader.clicked.connect(self.handle_header_checkbox_clicked)
 
-        # Column resizing for better readability
         header = self.table.horizontalHeader()
         header.setSectionResizeMode(0, QHeaderView.ResizeToContents)
         header.setSectionResizeMode(1, QHeaderView.ResizeToContents)
@@ -86,19 +82,13 @@ class CapturesListWidget(QtWidgets.QWidget):
         header.setSectionResizeMode(7, QHeaderView.ResizeToContents)
         header.setSectionResizeMode(8, QHeaderView.ResizeToContents)
 
-        # Alternating row colors (the actual colors can be set in style.py)
         self.table.setAlternatingRowColors(True)
-
-        # Increase row height for better readability
         self.table.verticalHeader().setDefaultSectionSize(28)
-
-        # Slightly larger fonts, row hover, and no hardcoded colors:
         self.table.setStyleSheet("""
             QTableWidget {
-                font-size: 16px;  /* Larger for field legibility */
+                font-size: 16px;
             }
             QTableWidget::item:hover {
-                /* Row hover highlight; actual color can be styled externally */
                 background-color: palette(highlight);
             }
             QHeaderView::section {
@@ -110,23 +100,16 @@ class CapturesListWidget(QtWidgets.QWidget):
 
         self.main_layout.addWidget(self.table)
 
-        # ---------------------------------------------------------
-        # BOTTOM BUTTONS: Back, Analyze, Trash
-        # ---------------------------------------------------------
+        # Bottom buttons: Back, Analyze, Delete.
         buttons_layout = QHBoxLayout()
-
-        # Back button (styled externally via "role" property or style sheets)
         self.back_button = QPushButton("Back")
         self.back_button.setProperty("role", "secondary")
         buttons_layout.addWidget(self.back_button)
         self.back_button.clicked.connect(self.handle_back)
 
-        # Stretch to push the other buttons to the right
         buttons_layout.addStretch()
 
-        # Analyze Selected button
         self.analyze_btn = QPushButton("Analyze Selected")
-        # Minimal style here; color is removed so you can do it in style.py
         self.analyze_btn.setStyleSheet("""
             QPushButton {
                 font-weight: bold;
@@ -137,7 +120,6 @@ class CapturesListWidget(QtWidgets.QWidget):
         buttons_layout.addWidget(self.analyze_btn)
         self.analyze_btn.clicked.connect(self.handle_analyze_selected)
 
-        # Delete Selected button (trash icon)
         self.delete_btn = QPushButton()
         trash_icon = self.style().standardIcon(QStyle.SP_TrashIcon)
         self.delete_btn.setIcon(trash_icon)
@@ -153,8 +135,6 @@ class CapturesListWidget(QtWidgets.QWidget):
         self.delete_btn.setProperty("role", "secondary")
 
         self.main_layout.addLayout(buttons_layout)
-
-        # Load data into the table
         self.load_captures()
 
     def showEvent(self, event):
@@ -169,76 +149,66 @@ class CapturesListWidget(QtWidgets.QWidget):
 
         self.analyze_btn.setEnabled(True)
         self.delete_btn.setEnabled(True)
-
         self.table.clearSpans()
         self.table.setRowCount(len(captures))
         self.table.setHorizontalHeaderLabels(
             ["", "ID", "File", "Time", "Status", "Crop Type", "Variety", "Location", "User"]
         )
-
-        # Hide the vertical header so row numbers (or empty cells) aren’t shown.
         self.table.verticalHeader().setVisible(False)
-
-        # Remove focus so no focus rectangle is drawn on the first row.
         self.table.setFocusPolicy(Qt.NoFocus)
 
         for row_idx, capture in enumerate(captures):
-            # Optionally, rename 'ctype' to 'crop_type' for clarity:
+            # Capture tuple: (id, filename, timestamp, status, crop_type, variety, location, user)
             capture_id, filename, timestamp, status, crop_type, variety, location, user = capture
 
-            # 0) SELECT checkbox
-            select_item = QTableWidgetItem()  # No text
-# Keep it enabled and user-checkable only (remove "selectable" or "editable" flags)
+            # Column 0: Checkbox.
+            select_item = QTableWidgetItem()
             select_item.setFlags(Qt.ItemIsEnabled | Qt.ItemIsUserCheckable)
-            # Initialize it to unchecked
             select_item.setCheckState(Qt.Unchecked)
-            # Center the checkbox horizontally (optional)
             select_item.setTextAlignment(Qt.AlignCenter)
-
             self.table.setItem(row_idx, 0, select_item)
 
-            # 1) ID
+            # Column 1: ID.
             id_item = QTableWidgetItem(str(capture_id))
             id_item.setFlags(id_item.flags() & ~Qt.ItemIsEditable)
             self.table.setItem(row_idx, 1, id_item)
 
-            # 2) File
+            # Column 2: File name.
             file_item = QTableWidgetItem(filename)
             file_item.setFlags(file_item.flags() & ~Qt.ItemIsEditable)
             self.table.setItem(row_idx, 2, file_item)
 
-            # 3) Time
+            # Column 3: Time.
             time_item = QTableWidgetItem(timestamp)
             time_item.setFlags(time_item.flags() & ~Qt.ItemIsEditable)
             self.table.setItem(row_idx, 3, time_item)
 
-            # 4) Status
+            # Column 4: Status.
             status_item = QTableWidgetItem(status)
             status_item.setFlags(status_item.flags() & ~Qt.ItemIsEditable)
             self.table.setItem(row_idx, 4, status_item)
 
-            # 5) Crop Type
+            # Column 5: Crop Type.
             type_item = QTableWidgetItem(crop_type or "")
             type_item.setFlags(type_item.flags() & ~Qt.ItemIsEditable)
             self.table.setItem(row_idx, 5, type_item)
 
-            # 6) Variety
+            # Column 6: Variety.
             variety_item = QTableWidgetItem(variety or "")
             variety_item.setFlags(variety_item.flags() & ~Qt.ItemIsEditable)
             self.table.setItem(row_idx, 6, variety_item)
 
-            # 7) Location
+            # Column 7: Location.
             location_item = QTableWidgetItem(location or "")
             location_item.setFlags(location_item.flags() & ~Qt.ItemIsEditable)
             self.table.setItem(row_idx, 7, location_item)
 
-            # 8) User
+            # Column 8: User.
             user_item = QTableWidgetItem(user or "")
             user_item.setFlags(user_item.flags() & ~Qt.ItemIsEditable)
             self.table.setItem(row_idx, 8, user_item)
 
     def show_empty_state(self):
-        """Show a friendlier empty state with a bit more guidance."""
         self.table.clearSpans()
         self.table.setRowCount(1)
         self.table.setHorizontalHeaderLabels(
@@ -249,14 +219,11 @@ class CapturesListWidget(QtWidgets.QWidget):
         placeholder.setTextAlignment(Qt.AlignCenter)
         self.table.setItem(0, 0, placeholder)
         self.table.setSpan(0, 0, 1, self.table.columnCount())
-
         self.analyze_btn.setEnabled(False)
         self.delete_btn.setEnabled(False)
 
     def handle_header_checkbox_clicked(self, checked):
-        """Toggle all row checkboxes when the header checkbox is clicked."""
         row_count = self.table.rowCount()
-        # If there's only the placeholder row, do nothing.
         if row_count == 1 and self.table.columnSpan(0, 0) == self.table.columnCount():
             return
         for row in range(row_count):
@@ -264,70 +231,15 @@ class CapturesListWidget(QtWidgets.QWidget):
             if item:
                 item.setCheckState(Qt.Checked if checked else Qt.Unchecked)
 
-    def handle_analyze_selected(self):
-        selected_ids = self.get_selected_ids()
-        if not selected_ids:
-            QtWidgets.QMessageBox.information(
-                self, "No Selection", "No captures selected. Please select at least one capture."
-            )
-            return
-
-        # [Rest of your analyze logic goes here...]
-        # For example:
-        import os
-        from config import OUTPUT_DIR
-        from pipeline_trigger import trigger_pipeline
-
-        for capture_id in selected_ids:
-            capture = self.metadata_service.get_capture(capture_id)
-            if not capture:
-                continue
-            filename = capture[1]
-            file_path = os.path.join(OUTPUT_DIR, filename)
-            metadata = {
-                "crop_type": capture[4] if capture[4] else "",
-                "variety": capture[5] if capture[5] else "",
-                "location": capture[6] if capture[6] else "",
-                "username": capture[7] if capture[7] else ""
-            }
-            try:
-                self.metadata_service.update_status_by_id(capture_id, "analysis requested")
-                result = trigger_pipeline(file_path, metadata)
-                print(f"Processing result for capture {capture_id}:", result)
-                self.metadata_service.update_status_by_id(capture_id, "analysis complete")
-            except Exception as e:
-                self.metadata_service.update_status_by_id(capture_id, "analysis failed")
-                print(f"Error processing capture {capture_id}: {e}")
-
-        QtWidgets.QMessageBox.information(
-            self, "Analysis Triggered",
-            f"Triggered analysis for {len(selected_ids)} capture(s)."
-        )
-        self.load_captures()
-
-    def handle_delete_selected(self):
-        selected_ids = self.get_selected_ids()
-        if not selected_ids:
-            QtWidgets.QMessageBox.information(
-                self, "No Selection", "No captures selected. Please select at least one capture to delete."
-            )
-            return
-        confirm = QtWidgets.QMessageBox.question(
-            self, "Confirm Delete",
-            f"Are you sure you want to delete {len(selected_ids)} capture(s)?"
-        )
-        if confirm == QtWidgets.QMessageBox.Yes:
-            for capture_id in selected_ids:
-                self.metadata_service.delete_capture_by_id(capture_id)
-            QtWidgets.QMessageBox.information(
-                self, "Deleted",
-                f"Deleted {len(selected_ids)} captures."
-            )
-            self.load_captures()
+    def reset_checkboxes(self):
+        for row in range(self.table.rowCount()):
+            item = self.table.item(row, 0)
+            if item:
+                item.setCheckState(Qt.Unchecked)
+        self.checkboxHeader._isChecked = False
+        self.checkboxHeader.viewport().update()
 
     def get_selected_ids(self):
-        """Return IDs of rows whose first-column checkboxes are checked."""
-        # Check if there's only one row that's a placeholder.
         if self.table.rowCount() == 1 and self.table.columnSpan(0, 0) == self.table.columnCount():
             return []
         selected_ids = []
@@ -343,6 +255,28 @@ class CapturesListWidget(QtWidgets.QWidget):
                         pass
         return selected_ids
 
+    # Modified handle_analyze_selected: Instead of processing analysis here, emit a signal.
+    def handle_analyze_selected(self):
+        selected_ids = self.get_selected_ids()
+        if not selected_ids:
+            QMessageBox.information(self, "No Selection", "No captures selected. Please select at least one capture.")
+            return
+
+        # Emit the list of selected capture IDs so the main window can navigate to the analysis progress page.
+        self.analysisRequested.emit(selected_ids)
+
+    def handle_delete_selected(self):
+        selected_ids = self.get_selected_ids()
+        if not selected_ids:
+            QMessageBox.information(self, "No Selection", "No captures selected. Please select at least one capture to delete.")
+            return
+        confirm = QMessageBox.question(self, "Confirm Delete", f"Are you sure you want to delete {len(selected_ids)} capture(s)?")
+        if confirm == QMessageBox.Yes:
+            for capture_id in selected_ids:
+                self.metadata_service.delete_capture_by_id(capture_id)
+            QMessageBox.information(self, "Deleted", f"Deleted {len(selected_ids)} captures.")
+            self.load_captures()
+        self.reset_checkboxes()
+
     def handle_back(self):
-        """Signal that the user wants to go back."""
         self.backRequested.emit()

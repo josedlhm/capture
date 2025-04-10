@@ -10,6 +10,7 @@ from capture_widget import CaptureWidget
 from captures_list_widget import CapturesListWidget
 from capture_review_widget import CaptureReviewWidget
 from login_widget import LoginWidget
+from analysis_progress_widget import AnalysisProgressWidget  # New analysis progress page
 
 class MainWindow(QMainWindow):
     def __init__(self, capture_service, metadata_service):
@@ -17,10 +18,13 @@ class MainWindow(QMainWindow):
         self.setWindowTitle("Crop Camera App")
         self.resize(1200, 800)
         self.current_user = None  # Will store the logged-in username
+        
 
         toolbar = QToolBar("Global Toolbar")
         toolbar.setMovable(False)
         self.addToolBar(Qt.TopToolBarArea, toolbar)
+
+        self.metadata_service = metadata_service
 
         # Spacer widget to push the exit button to the right
         spacer = QWidget()
@@ -50,7 +54,7 @@ class MainWindow(QMainWindow):
                 QToolButton:hover {
                     background-color: #c0392b;
                 }
-    """)
+            """)
 
         # Main container and layout.
         container = QWidget()
@@ -74,13 +78,17 @@ class MainWindow(QMainWindow):
         self.stacked_widget.addWidget(self.capture_page)          # Index 3
         self.stacked_widget.addWidget(self.list_page)             # Index 4
 
+        # Set initial page.
         self.stacked_widget.setCurrentIndex(0)
 
+        # Connect signals
         self.login_page.loginSuccess.connect(self.on_login_success)
         self.dashboard_page.navigationRequested.connect(self.change_page)
         self.capture_options_page.optionsSelected.connect(self.handle_capture_options)
         self.capture_page.captureCompleted.connect(self.show_capture_review)
         self.list_page.backRequested.connect(self.go_back_to_dashboard)
+        # New connection: when the list page requests analysis.
+        self.list_page.analysisRequested.connect(self.start_analysis)
 
     def confirm_exit(self):
         """Prompt for confirmation before exiting the app."""
@@ -133,3 +141,28 @@ class MainWindow(QMainWindow):
             self.change_page(2)
         elif action == "dashboard":
             self.change_page(1)
+
+    def start_analysis(self, capture_ids):
+        """
+        This method is invoked when the list page emits analysisRequested.
+        We create and display the AnalysisProgressWidget with the selected capture IDs.
+        """
+        print(f"Starting analysis for capture IDs: {capture_ids}")
+        
+        self.analysis_page = AnalysisProgressWidget(capture_ids, self.metadata_service)
+        self.analysis_page.analysisFinished.connect(self.analysis_finished)
+        self.stacked_widget.addWidget(self.analysis_page)
+        self.change_page(self.stacked_widget.indexOf(self.analysis_page))
+
+    def analysis_finished(self):
+        """
+        Called when the AnalysisProgressWidget signals analysisFinished.
+        Remove the analysis page from the stack and navigate back to the list page.
+        """
+        # Remove and delete the analysis page.
+        index = self.stacked_widget.indexOf(self.analysis_page)
+        if index != -1:
+            widget = self.stacked_widget.widget(index)
+            self.stacked_widget.removeWidget(widget)
+            widget.deleteLater()
+        self.change_page(self.stacked_widget.indexOf(self.list_page))
