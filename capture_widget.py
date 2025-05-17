@@ -67,7 +67,7 @@ class CaptureWidget(QtWidgets.QWidget):
         after = set(os.listdir(out_dir))
         new_files = sorted(
             f for f in after - self._preexisting
-            if f.lower().endswith(".svo")
+            if f.lower().endswith(".svo2")
         )
 
         if not new_files:
