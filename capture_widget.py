@@ -2,6 +2,7 @@
 
 import os
 import logging
+import time
 from datetime import datetime
 from PySide6 import QtCore, QtWidgets
 
@@ -37,8 +38,11 @@ class CaptureWidget(QtWidgets.QWidget):
         self.stop_button.setEnabled(False)
 
     def start_recording(self):
-        # snapshot existing files
-        self._preexisting = set(os.listdir(self.capture_service.output_dir))
+        # only remember existing .svo files
+        self._preexisting = {
+            f for f in os.listdir(self.capture_service.output_dir)
+            if f.lower().endswith(".svo2")
+        }
 
         if not self.capture_service.start_capture():
             QtWidgets.QMessageBox.warning(self, "Start Failed", "Could not start recording.")
@@ -55,11 +59,16 @@ class CaptureWidget(QtWidgets.QWidget):
         self.start_button.setEnabled(True)
         self.stop_button.setEnabled(False)
 
-        # find new files
+        # give the OS a moment to finish writing/closing the .svo
+        time.sleep(0.1)
+
+        # find new .svo files
         out_dir = self.capture_service.output_dir
         after = set(os.listdir(out_dir))
-        new_files = sorted(after - self._preexisting)
-        new_files = [f for f in new_files if f.lower().endswith((".svo", ".svo2"))]
+        new_files = sorted(
+            f for f in after - self._preexisting
+            if f.lower().endswith(".svo")
+        )
 
         if not new_files:
             QtWidgets.QMessageBox.information(self, "No Capture", "No new capture files found.")
